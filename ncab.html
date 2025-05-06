@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Buff Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background: #f7f7f7;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .card {
+      background-color: rgb(255, 255, 255);
+      padding: 1.5rem;
+      border-radius: 1rem;
+    }
+
+    .panel-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .panel-row input[type="number"] {
+      width: 80px;
+    }
+
+    .results-container {
+      position: relative;
+      margin-top: 1rem;
+    }
+
+    #imagePreview {
+      width: 100%;
+      max-height: 600px;
+      object-fit: contain;
+      border-radius: 0.5rem;
+      display: none;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 70%;
+      left: 10%;
+      transform: translate(25%, -50%);
+      background: rgba(255, 255, 255, 0.8);
+      padding: .75rem;
+      border-radius: 0.5rem;
+      font-size: .75rem;
+      max-width: 300px;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Panel Buff Calculator</h1>
+  <div class="container">
+    <div class="card">
+      <h2>Select Panels & Input Values</h2>
+      <div id="panel-list"></div>
+      <div>
+        <label>Upload Image:</label>
+        <input type="file" id="imageInput" accept="image/*" />
+      </div>
+      <button onclick="exportPDF()">Export PDF</button>
+    </div>
+
+    <div class="card" id="pdfContent">
+      <div class="results-container">
+        <img id="imagePreview" />
+        <div class="overlay">
+          <div id="results"></div>
+          <div id="grand-total" style="font-weight: bold; margin-top: 0.5rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    const PANELS = [
+      "Left Front Door",
+      "Right Front Door",
+      "Left Rear Door",
+      "Right Rear Door",
+      "Left Fender",
+      "Right Fender",
+      "Left Quarter Panel",
+      "Right Quarter Panel",
+      "Hood",
+    ];
+
+    const panelList = document.getElementById('panel-list');
+    const resultsDiv = document.getElementById('results');
+    const grandTotalDiv = document.getElementById('grand-total');
+    const pdfContent = document.getElementById('pdfContent');
+
+    const panelData = {};
+
+    PANELS.forEach(panel => {
+      const row = document.createElement('div');
+      row.className = 'panel-row';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = panel;
+
+      const label = document.createElement('label');
+      label.htmlFor = panel;
+      label.innerText = panel;
+      label.style.width = '180px';
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = '0.1';
+      input.disabled = true;
+
+      checkbox.addEventListener('change', () => {
+        input.disabled = !checkbox.checked;
+        if (!checkbox.checked) input.value = '';
+        calculate();
+      });
+
+      input.addEventListener('input', () => {
+        calculate();
+      });
+
+      row.appendChild(checkbox);
+      row.appendChild(label);
+      row.appendChild(input);
+      panelList.appendChild(row);
+
+      panelData[panel] = { checkbox, input };
+    });
+
+    function roundToTenth(value) {
+      return Math.round(value * 10) / 10;
+    }
+
+    function calculate() {
+      resultsDiv.innerHTML = '';
+      let grandTotal = 0;
+
+      for (const panel in panelData) {
+        const { checkbox, input } = panelData[panel];
+        if (checkbox.checked && input.value) {
+          const value = parseFloat(input.value);
+          const result = roundToTenth(value * 0.3);
+          const div = document.createElement('div');
+          div.innerText = `${panel}: ${value} × 0.3 = ${result}`;
+          resultsDiv.appendChild(div);
+          grandTotal += result;
+        }
+      }
+
+      grandTotalDiv.innerText = `GRAND TOTAL: ${roundToTenth(grandTotal)}`;
+    }
+
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    let imageDataUrl = '';
+
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          imageDataUrl = event.target.result;
+          imagePreview.src = imageDataUrl;
+          imagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function exportPDF() {
+      const clone = pdfContent.cloneNode(true);
+      const img = clone.querySelector('#imagePreview');
+      if (imageDataUrl) {
+        img.src = imageDataUrl;
+        img.style.display = 'block';
+      }
+      html2pdf().from(clone).save('CCC De-Nib and Polish.pdf');
+    }
+  </script>
+</body>
+
+</html>
